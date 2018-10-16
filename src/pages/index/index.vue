@@ -9,10 +9,8 @@
     </div>
 
     <form class="form-container">
-      <i-panel>
-        <i-input type="text" v-model="username" title="账号" placeholder="请输入用户名" ></i-input>
-        <i-input type="password" v-model="password" title="密码" placeholder="请输入密码" />
-      </i-panel>
+      <i-input type="text" :value="username" title="账号" placeholder="请输入用户名" ></i-input>
+      <i-input type="password" :value="password" title="密码" placeholder="请输入密码"></i-input>
       <i-button type="primary" @click="login">登 录</i-button>
     </form>
   </div>
@@ -20,7 +18,6 @@
 
 <script>
 import card from '@/components/card'
-
 export default {
   data () {
     return {
@@ -35,10 +32,6 @@ export default {
   },
 
   methods: {
-    bindViewTap () {
-      const url = '../logs/main'
-      wx.navigateTo({ url })
-    },
     getUserInfo () {
       // 调用登录接口
       wx.login({
@@ -51,8 +44,20 @@ export default {
         }
       })
     },
-    login () {
-      console.log(this.username, this.password)
+    async login () {
+      console.log('123', this.username, this.password)
+      let data = {
+        key: '00d91e8e0cca2b76f515926a36db68f5',
+        phone: this.username,
+        passwd: this.password
+      }
+      await this.$net.post('https://www.apiopen.top/login', data).then(res => {
+        console.log(res)
+        if (res.code === 200) {
+          const url = '../news/main'
+          wx.navigateTo({ url })
+        }
+      })
     }
   },
 
