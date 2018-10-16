@@ -1,5 +1,4 @@
-// import wx from 'wx' // 引用微信小程序wx对象
-
+const baseUrl = 'https://www.apiopen.top/'
 const net = {
   get (url, data) {
     wx.showLoading({
@@ -7,7 +6,7 @@ const net = {
     })
     return new Promise((resolve, reject) => {
       wx.request({
-        url: url,
+        url: baseUrl + url,
         data: data,
         method: 'GET', // OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT
         header: {
@@ -43,7 +42,7 @@ const net = {
     })
     return new Promise((resolve, reject) => {
       wx.request({
-        url: url,
+        url: baseUrl + url,
         data: data,
         method: 'POST', // OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT
         header: {
