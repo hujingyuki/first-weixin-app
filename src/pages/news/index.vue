@@ -11,9 +11,9 @@
       </i-card>
       </li>
     </ul>
-    <i-tab-bar :current="currentMeun" color="#f759ab">
-      <i-tab-bar-item key="homepage" icon="homepage" current-icon="homepage_fill" title="首页"></i-tab-bar-item>
-      <i-tab-bar-item key="group" icon="group" current-icon="group_fill" title="朋友"></i-tab-bar-item>
+    <i-tab-bar :current="currentMeun" color="#2b85e4" :fixed="true" @change="handleChange($event)">
+      <i-tab-bar-item key="homepage" icon="homepage" current-icon="barrage_fill" title="首页"></i-tab-bar-item>
+      <i-tab-bar-item key="weather" icon="group" current-icon="dynamic_fill" title="天气"></i-tab-bar-item>
       <i-tab-bar-item key="remind" icon="remind" current-icon="remind_fill" title="通知"></i-tab-bar-item>
       <i-tab-bar-item key="mine" icon="mine" current-icon="mine_fill" title="我的"></i-tab-bar-item>
     </i-tab-bar>
@@ -22,13 +22,8 @@
 
 <script>
 import { formatTime } from '@/utils/index';
-import card from '@/components/card';
 
 export default {
-  components: {
-    card
-  },
-
   data () {
     return {
       resData: {},
@@ -61,6 +56,25 @@ export default {
     changeType(index) {
       this.currentBar = index;
       this.newsArray = this.resData[this.itemList[index]];
+    },
+    handleChange(ev){
+      this.currentMeun = ev.target.key;
+      let url;
+      switch(this.currentMeun){
+        case "homepage":
+          url = '../news/main';
+          wx.navigateTo({url});
+          break;
+        case "weather":
+          url = '../weather/main';
+          wx.navigateTo({url});
+          break;
+        case "remind":
+          break;
+        case "mine":
+          break;
+        default:break;
+      }
     }
   },
   

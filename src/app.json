@@ -1,7 +1,9 @@
 {
   "pages": [
-    "pages/index/main",
+    "pages/weather/main",
     "pages/news/main",
+    "pages/index/main",
+    "pages/location/main",
     "pages/logs/main"
   ],
   "window": {

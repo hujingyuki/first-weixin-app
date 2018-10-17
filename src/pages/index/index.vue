@@ -53,7 +53,7 @@ export default {
       await this.$net.post('login', data).then(res => {
         if (res.code === 200) {
           const url = '../news/main'
-          wx.navigateTo({ url })
+          wx.redirectTo({ url })
         }
       })
     }

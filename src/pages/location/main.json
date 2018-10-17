@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "选择地区",
+  "usingComponents": {
+    "i-icon": "../../static/iview/icon/index"
+  }
+}
