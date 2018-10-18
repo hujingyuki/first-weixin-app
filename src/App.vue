@@ -1,11 +1,16 @@
 <script>
+
 export default {
   created () {
     // 调用API从本地缓存中获取数据
     const logs = wx.getStorageSync('logs') || []
     logs.unshift(Date.now())
     wx.setStorageSync('logs', logs)
-
+    //设置和获取缓存的地理位置
+    const loc = wx.getStorageSync('location') || ''
+    if(!loc){
+      wx.setStorageSync('location', '北京');
+    }
     console.log('app created and cache logs by setStorageSync')
   }
 }

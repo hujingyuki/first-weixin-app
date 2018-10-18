@@ -10,7 +10,7 @@
       <img :src="!!dataArray[1] ? dataArray[1].img :'https://cdn.heweather.com/cond_icon/999.png'" class="big-img"/>
       <span class="nowspan">{{nowTemp}}℃</span>
       <div class="city" @click="goCity" >
-        <i-icon type="coordinates_fill" class="loc-icon"/>
+        <i-icon type="coordinates_fill" size="20"/>
         <text class="loc">{{cityName}}</text>
       </div>
     </div>
@@ -30,13 +30,16 @@
 </template>
 
 <script>
+import { setTimeout } from 'timers';
+
 export default {
   data() {
     return {
-      cityName: '北京',
+      cityName: '武汉',
       dataArray: [],
       tips: '',
-      nowTemp: ''
+      nowTemp: '',
+      currentMeun: 'weather'
     }
   },
   methods: {
@@ -45,6 +48,7 @@ export default {
     },
     initWeather() {
       this.$net.get('weatherApi',{city:this.cityName}).then(res => {
+        wx.hideNavigationBarLoading();
         if (res.code == 200) {
           try {
             let resData = res.data;
@@ -101,6 +105,25 @@ export default {
         data.day = dateA[0];
         data.weekday = dateA[1];
       }
+    },
+    handleChange(ev){
+      //this.currentMeun = ev.target.key;
+      let url;
+      switch(ev.target.key){
+        case "news":
+          url = '../news/main';
+          wx.redirectTo({url});
+          break;
+       /*  case "weather":
+          url = '../weather/main';
+          wx.redirectTo({url});
+          break; */
+        case "remind":
+          break;
+        case "mine":
+          break;
+        default:break;
+      }
     }
   },
   computed: {
@@ -108,7 +131,17 @@ export default {
   },
   mounted () {
     this.initWeather();
-  }
+  },
+  // 下拉刷新
+  async onPullDownRefresh() {
+    // 显示顶部刷新图标
+    wx.showNavigationBarLoading();
+    setTimeout(()=>{
+      // 停止下拉刷新
+      wx.stopPullDownRefresh();
+    },500);
+    this.initWeather();
+  },
 
 }
 </script>
@@ -119,7 +152,6 @@ export default {
   height: 100%;
   width: 100%;
   background: url(http://5b0988e595225.cdn.sohucs.com/images/20180507/c6e5c35c506848139685683db881a154.jpg);
-  /* background-image: url(http://i9.download.fd.pchome.net/t_600x1024/g1/M00/0E/18/ooYBAFUQwnyILmmaAAKiJrdovCIAACXDQOoGiEAAqI-844.jpg ); */
   background-size:100% 100%;
   font-weight: 400;
   color: #FFF;
@@ -171,10 +203,6 @@ export default {
 
 .loc { 
   margin-left: 6px;
-}
-
-.loc-icon[style] {
-  font-size: 20px !important;
 }
 
 .big-img {

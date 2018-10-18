@@ -1,6 +1,9 @@
 {
-  "navigationBarTitleText": "选择地区",
+  "navigationBarTitleText": "城市列表",
+  "navigationBarBackgroundColor": "#2d8cf0",
+  "navigationBarTextStyle": "light",
   "usingComponents": {
-    "i-icon": "../../static/iview/icon/index"
+    "i-index": "../../static/iview/index/index",
+    "i-index-item": "../../static/iview/index-item/index"
   }
 }

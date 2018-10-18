@@ -1,197 +1,311 @@
 <template>
-  <div>
-    <div class="weather clearfix" v-if="!showCity">
-      <div class="today center" v-if="dataArray.length > 0">
-        <p>今日 {{dataArray[1].weekday}}</p>
-        <p>{{dataArray[1].temperture}}</p>
-        <p>{{dataArray[1].type}}</p>
-        <p>{{dataArray[1].fengxiang + dataArray[1].fengli}}</p>
-      </div>
-      <div class="today">
-        <img :src="!!dataArray[1] ? dataArray[1].img :'https://cdn.heweather.com/cond_icon/999.png'" class="big-img"/>
-        <div class="city" @click="goCity" >
-          <i-icon type="coordinates_fill" class="loc-icon"/>
-          <text class="loc">{{cityName}}</text>
-        </div>
-      </div>
-      <ul class="forecast">
-        <li v-for="(item,index) in dataArray" :key='index' v-if="index!=1">
-          <img :src="item.img" class="small-img"/>
-          <span>{{ item.date }}</span>
-          <span>{{ item.type }}</span>
-          <span>{{ item.temperture }}</span>
-          <span>{{ item.fengxiang + item.fengli}}</span>
-        </li>
-      </ul>
-    </div>
-    <div class="tabcity" v-if="showCity">
-
-    </div>
-  </div>
+  <view class='list-warpper'>
+  <view v-if="search" class='list-search'>
+    <view class='list-search-box'>
+      <icon type="search" size="15" />
+      <input placeholder="输入您要搜索的城市" v-model.lazy="keyword" />
+    </view>
+    <button class='search-button' @click='searchMt'>搜索</button>
+  </view>
+  
+  <block v-if="list.length != 0">
+    <scroll-view :class="['list-scroll', search?'top':'']" :style="{'height': windowHeight}" scroll-y="true" :scroll-into-view="jumpNum" :scroll-with-animation="animation">
+      <!-- 我的位置  -->
+      <view v-if="myCity.name">
+        <view class='list-title'>我的位置</view>
+        <view class='list-horizontal'>
+          <view class="list-name border" @click="choose(myCity.name)">
+            {{myCity.name}}
+          </view>
+        </view>
+      </view>
+      <view :id="'item'+index" v-for="(item,index) in list" :key="index">
+        <view class='list-title'>{{item.title}}</view>
+        <view :class='[index===0&&horizontal&&item.type==="hot"?"list-horizontal":""]'>
+          <view :class='["list-name", idx === 0 ?"":"border"]' v-for="(city,idx) in item.item" :key="idx" @click='choose(city.name)'>
+            {{city.name}}
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+    <view class='list-right-wrapper'>
+      <view class='right-item' v-for="(right,index) in rightArr" :key="index" @click='jumpMt(index)'>
+        {{right}}
+      </view>
+    </view>
+  </block>
+  <block v-else>
+    <view class='nodata'>没有搜索到相关的数据哦</view>
+  </block>
+</view>
 </template>
 
 <script>
+import Citys from '@/utils/city';
+import QQMapWX from '@/utils/qqmap-wx-jssdk.js';
+let qqmapsdk;
 export default {
   data() {
     return {
-      cityName: '北京',
-      showCity: false,
-      dataArray: []
+      horizontal: true, // 第一个选项是否横排显示（一般第一个数据选项为 热门城市，常用城市之类 ，开启看需求）
+      animation:true ,// 过渡动画是否开启
+      search:true ,// 是否开启搜索
+      cityData:Citys,
+      list: [],
+      rightArr: [],// 右侧字母展示
+      jumpNum: '',//跳转到那个字母
+      keyword: '',
+      myCity: {
+        name:'北京',
+        latitude: '',
+        longitude: ''
+      }, // 默认我的城市
+      windowHeight: 700
+    }
+  },
+  onLoad: function () {
+    let _this = this;
+    qqmapsdk = new QQMapWX({
+      key: 'UL6BZ-MJJWJ-FVLFL-FN27W-IGM3E-F6BCD' //这里自己的key秘钥进行填充
+    });
+    wx.getSystemInfo({
+      success: function (res) {
+        _this.windowHeight = res.windowHeight + 'px'
+      }
+    })
+  },
+  mounted () {
+    this.resetRight(this.cityData);
+    if (this.myCity.name) {
+      this.getCity()
     }
   },
   methods: {
-    goCity() {
-      this.showCity = true;
+    // 数据重新渲染
+    resetRight(data) {
+      let rightArr = []
+      for (let i in data) {
+        rightArr.push(data[i].title.substr(0, 1));
+      }
+      this.rightArr = rightArr;
+      this.list = data;
     },
-    initWeather() {
-      this.$net.get('weatherApi',{city:this.cityName}).then(res => {
-        if (res.code == 200) {
-          try {
-            let resData = res.data;
-            //昨日数据处理
-            resData.yesterday.fengxiang = resData.yesterday.fx;
-            resData.yesterday.fengli = resData.yesterday.fl.replace('<![CDATA[','').replace(']]>','');
-            resData.yesterday.temperture = this.temperture(resData.yesterday);
-            resData.yesterday.img = this.getImageUrl(resData.yesterday);
-            this.dateFormat(resData.yesterday);
-            console.log('yesterday', resData.yesterday);
-            this.dataArray.push(resData.yesterday);
-            //预报数据处理
-            for(let i = 0; i < resData.forecast.length; i++){
-              this.dateFormat(resData.forecast[i]);
-              resData.forecast[i].temperture = this.temperture(resData.forecast[i]);
-              resData.forecast[i].img = this.getImageUrl(resData.forecast[i]);
-              resData.forecast[i].fengli = resData.forecast[i].fengli.replace('<![CDATA[','').replace(']]>','');
-            }
-            this.dataArray = this.dataArray.concat(resData.forecast);
-            this.cityName = resData.city;
-            console.log('all',this.dataArray);
-          } catch (error) {
-            console.log(error);
-          }
+    getCity() {
+      let _this = this;
+      wx.getLocation({
+        type: 'wgs84',
+        success: function (res) {
+          _this.locationMt(res.latitude,res.longitude);
         }
       })
     },
-    getImageUrl(source) {
-      let url = 'https://cdn.heweather.com/cond_icon/',reCode = 999;
-      if(!!source) {
-        reCode = this.$imgCode(source.type);
-      }
-      url += reCode;
-      if (new Date().getHours() >= 18 && reCode !== 999) {
-        url += 'n';
-      }
-      url += '.png';
-      return url
+    // 右侧字母点击事件
+    jumpMt(index) {
+      this.jumpNum = 'item'+index;
     },
-    temperture(data) {
-      let temp = '';
-      if(!!data) {
-        temp = data.low.replace('低温 ','') + '~' + data.high.replace('高温 ','');
-      }
-      console.log(temp);
-      return temp;
+    // 城市名称点击事件
+    choose(name) {
+      wx.setStorageSync('location', name);
+      wx.navigateBack();
     },
-    dateFormat(data) {
-      if(!!data){
-        let dateA = data.date.split('日');
-        data.day = dateA[0];
-        data.weekday = dateA[1];
+    // 获取搜索输入内容
+    input(e) {
+      this.keyword = e.detail.value;
+    },
+    // 基础搜索功能
+    searchMt() {
+      this._search();
+    },
+    _search(){
+      console.log("搜索",this.keyword);
+      let data = this.cityData;
+      let newData = [];
+      for (let i = 0; i < data.length; i++) {
+        let itemArr = [];
+        for (let j = 0; j < data[i].item.length; j++) {
+          if (data[i].item[j].name.indexOf(this.keyword) > -1) {
+            let itemJson = {};
+            for (let k in data[i].item[j]) {
+              itemJson[k] = data[i].item[j][k];
+            }
+            itemArr.push(itemJson);
+          }
+        }
+        if (itemArr.length === 0) {
+          continue;
+        }
+        newData.push({
+          title: data[i].title,
+          type: data[i].type ? data[i].type : "",
+          item: itemArr
+        })
       }
+      this.resetRight(newData);
+    },
+    // 城市定位
+    locationMt(latitude, longitude) {
+      let _this = this;
+      qqmapsdk.reverseGeocoder({
+        location: {
+          latitude: latitude,
+          longitude: longitude
+        },
+        success: function (res) {
+          let city = res.result.ad_info.city
+          if(city && city.indexOf('市') > -1){
+            _this.myCity.name = city.replace('市','');
+          }else {
+            _this.myCity.name = city;
+          }
+          _this.myCity.latitude = latitude;
+          _this.myCity.longitude = longitude;
+        },
+        fail: function (res) {
+          //console.log(res);
+        },
+        complete: function (res) {
+          //console.log(res);
+        }
+      });
     }
-  },
-  computed: {
-    
-  },
-  mounted () {
-    this.initWeather();
   }
-
 }
 </script>
 
 <style scoped>
-.weather {
-  position: fixed;
-  height: 100%;
+.list-warpper {
+  position: relative;
   width: 100%;
-  background: url(http://5b0988e595225.cdn.sohucs.com/images/20180507/c6e5c35c506848139685683db881a154.jpg);
-  /* background-image: url(http://i9.download.fd.pchome.net/t_600x1024/g1/M00/0E/18/ooYBAFUQwnyILmmaAAKiJrdovCIAACXDQOoGiEAAqI-844.jpg ); */
-  background-size:100% 100%;
-  font-weight: 400;
-  color: #FFF;
+  height: 100%;
+  box-sizing: border-box;
 }
 
-.weather::after{
-  content: '';
-  position: fixed;
+.list-scroll {
+  width: 100%;
+  box-sizing: border-box;
+}
+.list-scroll.top{
+  padding-top: 90rpx;
+}
+
+/* 样式控制  */
+
+.list-title {
+  background: #f5f5f5;
+  color: #666;
+  font-size: 36rpx;
+  padding: 10rpx;
+  padding-left: 30rpx;
+  padding-top: 15rpx;
+}
+
+.list-name {
+  position: relative;
+  font-size: 28rpx;
+  padding: 15rpx;
+  padding-left: 30rpx;
+  color: #999;
+}
+
+.list-name.border::after {
+  content: "";
+  position: absolute;
+  left: 30rpx;
+  right: 0;
   top: 0;
-  z-index: -1;
-  width: 100vw;
-  height: 100vh;
-  background:rgba(0,0,0,.4);
+  height: 1px;
+  background: #f5f5f5;
 }
 
-.center {
+.list-right-wrapper {
+  position: fixed;
+  top: 100rpx;
+  right: 20rpx;
+  padding: 10rpx 0;
+  border-radius: 20rpx;
+  z-index: 2;
+  background: #ddd;
+}
+
+.right-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rpx 10rpx;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.list-search {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 90rpx;
+  padding: 10rpx 30rpx;
+  box-sizing: border-box;
+  z-index: 20;
+  background: #FFF;
+}
+
+.search-title {
+  flex-shrink: 0;
+  font-size: 28rpx;
+  padding-right: 10rpx;
+}
+
+.list-search-box {
+  display: flex;
+  align-items: center;
+  padding: 0 30rpx;
+  width: 100%;
+  height: 70rpx;
+  background: #f5f5f5;
+  border-radius: 90rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.list-search-box input {
+  width: 100%;
+  padding-left: 10rpx;
+}
+
+.search-button {
+  /* width: 100rpx; */
+  flex-shrink: 0;
+  height: 60rpx;
+  line-height: 60rpx;
+  font-size: 28rpx;
+  margin-left: 10rpx;
+}
+
+/* 热门城市横排显示样式  */
+
+.list-horizontal {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 10rpx;
+  padding-right: 50rpx;
+}
+
+.list-horizontal .list-name {
+  padding: 5rpx 20rpx;
+  border: 1px #ccc solid;
+  border-radius: 10rpx;
+  margin: 10rpx;
+  /* margin-right: 20rpx; */
+}
+
+
+/* 无数据  */
+.nodata {
+  padding-top: 200rpx;
   text-align: center;
-}
-
-.today {
-  width:42.5%;
-  height:120px;
-  margin-left:5%;
-  margin-top:20px;
-  float: left;
-}
-
-.today p{
-  margin-top: 5px;
-}
-
-.city {
-  margin-left: 30px;
-  font-size: 20px;
-}
-
-.loc { 
-  margin-left: 6px;
-}
-
-.loc-icon[style] {
-  font-size: 20px !important;
-}
-
-.big-img {
-  margin-left: 20px;
-  width: 80px;
-  height: 80px;
-  color: #fff;
-}
-
-.small-img {
-  width: 16px;
-  height: 16px;
-}
-
-.forecast {
-  margin-top: 160px;
-  padding: 0 5%;
-  font-size: 14px;
-}
-
-.forecast li{
-  margin-top: 5px;
-}
-
-.clearfix:before,
-.clearfix:after {
-  content: '';
-  display: table;
-}
-
-.clearfix:after {
-  clear: both;
-  overflow: hidden;
+  font-size: 32rpx;
+  color: #ddd;
 }
 </style>
 

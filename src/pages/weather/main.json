@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "天气预报",
+  "enablePullDownRefresh": true,
   "usingComponents": {
     "i-icon": "../../static/iview/icon/index",
     "i-tab-bar": "../../static/iview/tab-bar/index",

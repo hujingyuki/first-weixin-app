@@ -1,13 +1,12 @@
 {
   "pages": [
-    "pages/weather/main",
-    "pages/news/main",
+    "pages/login/main",
     "pages/index/main",
-    "pages/location/main",
-    "pages/logs/main"
+    "pages/newsDetail/main",
+    "pages/location/main"
   ],
   "window": {
-    "backgroundTextStyle": "light",
+    "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#fff",
     "navigationBarTitleText": "WeChat",
     "navigationBarTextStyle": "black"

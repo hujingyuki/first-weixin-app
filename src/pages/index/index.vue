@@ -1,94 +1,400 @@
 <template>
-  <div class="container">
-
-    <div class="userinfo">
-      <img class="userinfo-avatar" v-if="userInfo.avatarUrl" :src="userInfo.avatarUrl" background-size="cover" />
-      <div class="userinfo-nickname">
-        <card :text="userInfo.nickName"></card>
+  <div>
+    <!-- 新闻部分 -->
+    <div v-if="currentMeun =='news'">
+      <!-- <i-tabs :current="currentBar" scroll>
+        <i-tab  v-for="(item, index) in newsTypes" :title="item.desc" :key="index" @click="changeType(index)"></i-tab>
+      </i-tabs> -->
+      <scroll-view :scroll-x="true" :scroll-left="scrollLeft" class="tab-scroll">
+        <span v-for="(item, index) in newsTypes" :key="index" @click="changeType(index)" :class="['tab-item',currentBar == index ? 'active' :'']">{{item.desc}}</span>
+      </scroll-view>
+      <swiper :current="currentBar" @change="handleSwiper" class="swiper">
+        <swiper-item v-for="(swiperitem, swiperIndex) in newsTypes" :key="swiperIndex">
+          <scroll-view class="scroll" :scroll-y="true">
+            <ul class="container log-list">
+              <li v-for="(news, index) in newsData[swiperitem.name]" :key="index" class="log-item" @click="goNewsDetail(news.link)">
+                <i-card :title="news.title" :thumb="!!news.picInfo[0]?news.picInfo[0].url:''">
+                  <view slot="content">{{news.digest}}</view>
+                  <view slot="footer">{{news.source}}</view>
+                </i-card>
+              </li>
+            </ul>
+          </scroll-view>
+        </swiper-item>
+      </swiper>
+    </div>
+    <!-- 天气预报部分 -->
+    <div  v-if="currentMeun =='weather'" class="weather clearfix">
+      <div class="today center" v-if="weatherArray.length > 0">
+        <p>今日 {{weatherArray[1].weekday}}</p>
+        <p>{{weatherArray[1].temperture}}</p>
+        <p>{{weatherArray[1].type}}</p>
+        <p>{{weatherArray[1].fengxiang + weatherArray[1].fengli}}</p>
       </div>
+      <div class="today right">
+        <img :src="!!weatherArray[1] ? weatherArray[1].img :'https://cdn.heweather.com/cond_icon/999.png'" class="big-img"/>
+        <span class="nowspan">{{nowTemp}}℃</span>
+        <div class="city" @click="goToCity" >
+          <i-icon type="coordinates_fill" size="20"/>
+          <text class="loc">{{cityName}}</text>
+        </div>
+      </div>
+      <ul class="forecast">
+        <scroll-view class="scroll-view" :scroll-x="true">
+          <li v-for="(item,index) in weatherArray" :key='index' v-if="index!=1">
+            <p>{{ item.weekday }}</p>
+            <p><img :src="item.img" class="small-img"/></p>
+            <p>{{ item.type }}</p>
+            <p>{{ item.temperture }}</p>
+            <p>{{ item.fengxiang + item.fengli}}</p>
+          </li>
+        </scroll-view>
+      </ul>
+      <p class="tips"><span>温馨提示：</span>{{tips}}</p>
     </div>
 
-    <form class="form-container">
-      <i-input type="text" v-model="username" title="账号" placeholder="请输入用户名" ></i-input>
-      <i-input type="password" v-model="password" title="密码" placeholder="请输入密码"></i-input>
-      <i-button type="primary" @click="login">登 录</i-button>
-    </form>
+    <i-tab-bar :current="currentMeun" color="#2b85e4" :fixed="true" @change="handleChange">
+      <i-tab-bar-item key="news" icon="barrage" current-icon="barrage_fill" title="新闻"></i-tab-bar-item>
+      <i-tab-bar-item key="weather" icon="dynamic" current-icon="dynamic_fill" title="天气"></i-tab-bar-item>
+      <i-tab-bar-item key="remind" icon="remind" current-icon="remind_fill" title="通知"></i-tab-bar-item>
+      <i-tab-bar-item key="mine" icon="mine" current-icon="mine_fill" title="我的"></i-tab-bar-item>
+    </i-tab-bar>
   </div>
 </template>
 
 <script>
-import card from '@/components/card'
+import { formatTime } from '@/utils/index';
+
 export default {
   data () {
     return {
-      username: '13163377929',
-      password: '123456',
-      userInfo: {}
+      newsData: {},
+      newsTypes: [],
+      currentBar: 0,
+      currentMeun: 'news',
+      cityName: "",
+      scrollLeft: 0,
+      weatherArray: [],
+      tips: '',
+      nowTemp: ''
     }
-  },
-
-  components: {
-    card
   },
 
   methods: {
-    getUserInfo () {
-      // 调用登录接口
-      wx.login({
-        success: () => {
-          wx.getUserInfo({
-            success: (res) => {
-              this.userInfo = res.userInfo
+    // 点击底部菜单
+    handleChange(ev){
+      if (this.currentMeun != ev.target.key){
+        this.reloadData(ev.target.key);
+      }
+      this.currentMeun = ev.target.key;
+    },
+    // 重载各个页面的数据
+    reloadData(page) {
+      switch(page){
+        case "news":
+          wx.setNavigationBarTitle({title:'新闻列表'});
+          this.getNews();
+          break; 
+        case "weather":
+          wx.setNavigationBarTitle({title:'天气预报'});
+          this.initWeather();
+          break;
+        case "remind":
+          break;
+        case "mine":
+          break;
+        default:break;
+      }
+    },
+    // 获取新闻数据
+    async getNews() {
+      await this.$net.get('journalismApi').then(res =>{
+        wx.hideNavigationBarLoading();
+        if (res.code === 200) {
+          this.newsData = res.data;
+          try {
+            for (let item in this.newsData) {
+              let titleItem = {};
+              titleItem.name = item;
+              titleItem.desc = this.newsData[item][0].category;
+              this.newsTypes.push(titleItem);
             }
-          })
+          } catch (error) {
+            console.log(error);
+          }
         }
       })
     },
-    async login () {
-      let data = {
-        key: '00d91e8e0cca2b76f515926a36db68f5',
-        phone: this.username,
-        passwd: this.password
+    // 点击新闻标签动作
+    changeType(index) {
+      this.currentBar = index;
+    },
+    // 新闻页面左右滑动
+    handleSwiper(ev){
+      this.currentBar = ev.mp.detail.current;
+      //超过6个tab后滚动tab标签
+      if(this.currentBar > 6) {
+        this.scrollLeft = 50;
       }
-      await this.$net.post('login', data).then(res => {
-        if (res.code === 200) {
-          const url = '../news/main'
-          wx.redirectTo({ url })
+    },
+    //查看新闻详情 未发布出去的不支持
+    goNewsDetail(link){
+      let url = '../newsDetail/main?link=' + link;
+      wx.navigateTo({url});
+    },
+    // 选择城市
+    goToCity() {
+      let url = '../location/main';
+      wx.navigateTo({url});
+    },
+    // 获取天气数据
+    initWeather() {
+      this.$net.get('weatherApi',{city:this.cityName}).then(res => {
+        wx.hideNavigationBarLoading();
+        if (res.code == 200) {
+          this.weatherArray = [];//清空数据
+          try {
+            let resData = res.data;
+            this.tips = resData.ganmao;
+            this.nowTemp = resData.wendu;
+            //昨日数据处理
+            resData.yesterday.fengxiang = resData.yesterday.fx;
+            resData.yesterday.fengli = resData.yesterday.fl.replace('<![CDATA[','').replace(']]>','');
+            resData.yesterday.temperture = this.temperture(resData.yesterday);
+            resData.yesterday.img = this.getImageUrl(resData.yesterday);
+            this.dateFormat(resData.yesterday);
+            this.weatherArray.push(resData.yesterday);
+            //预报数据处理
+            for(let i = 0; i < resData.forecast.length; i++){
+              this.dateFormat(resData.forecast[i]);
+              resData.forecast[i].temperture = this.temperture(resData.forecast[i]);
+              if(i == 0){
+                resData.forecast[i].img = this.getImageUrl(resData.forecast[i],true);
+              }else{
+                resData.forecast[i].img = this.getImageUrl(resData.forecast[i]);
+              }
+              resData.forecast[i].fengli = resData.forecast[i].fengli.replace('<![CDATA[','').replace(']]>','');
+            }
+            this.weatherArray = this.weatherArray.concat(resData.forecast);
+            //this.cityName = resData.city;
+          } catch (error) {
+            console.log(error);
+          }
         }
       })
-    }
+    },
+    // 获取天气图片
+    getImageUrl(source,istoday) {
+      let url = 'https://cdn.heweather.com/cond_icon/',reCode = 999;
+      if(!!source) {
+        reCode = this.$imgCode(source.type);
+      }
+      url += reCode;
+      if (istoday && new Date().getHours() >= 18 && reCode !== 999) {
+        url += 'n';
+      }
+      url += '.png';
+      return url
+    },
+    // 处理温度数据
+    temperture(data) {
+      let temp = '';
+      if(!!data) {
+        temp = data.low.replace('低温 ','') + '~' + data.high.replace('高温 ','');
+      }
+      return temp;
+    },
+    // 处理天气日期
+    dateFormat(data) {
+      if(!!data){
+        let dateA = data.date.split('日');
+        data.day = dateA[0];
+        data.weekday = dateA[1];
+      }
+    },
   },
-
-  created () {
-    // 调用应用实例的方法获取全局数据
-    this.getUserInfo()
+  mounted () {
+    this.getNews();
+  },
+  // 下拉刷新
+  async onPullDownRefresh() {
+    // 停止下拉刷新
+    wx.stopPullDownRefresh();
+    // 显示顶部刷新图标
+    wx.showNavigationBarLoading();
+    this.reloadData(this.currentMeun);
+  },
+  onShow(){
+    let newCity = wx.getStorageSync('location')
+    if(newCity !== this.cityName){
+      this.initWeather();
+      this.cityName = newCity;
+    }
   }
 }
 </script>
 
-<style scoped>
-.userinfo {
+<style>
+.log-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  padding: 10rpx;
 }
 
-.userinfo-avatar {
-  width: 128rpx;
-  height: 128rpx;
-  margin: 20rpx;
-  border-radius: 50%;
+.log-item {
+  margin: 5rpx;
+}
+.swiper,
+.scroll {
+  height: 516px;
 }
 
-.userinfo-nickname {
-  color: #aaa;
+.swiper {
+  padding-top: 50px;
 }
 
-.form-control {
+.tab-scroll {
+  height: 40px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  line-height: 40px;
+  background: #F7F7F7;
+  font-size: 16px;
+  white-space: nowrap;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99;
+}
+
+.tab-item {
+  margin:0 30rpx;
+  display: inline-block;
+}
+
+.tab-item.active {
+  color: #4675F9;
+  position: relative;
+}
+
+.tab-item.active:after {
+  content: "";
   display: block;
-  padding: 0 12px;
-  margin-bottom: 5px;
-  border: 1px solid #ccc;
+  height: 3px;
+  width: 40px;
+  background: #4675F9;
+  position: absolute;
+  bottom: 0;
+  left: -5px;
+  border-radius: 3px;
 }
 
+.weather {
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  background: url(http://5b0988e595225.cdn.sohucs.com/images/20180507/c6e5c35c506848139685683db881a154.jpg);
+  background-size:100% 100%;
+  font-weight: 400;
+  color: #FFF;
+}
+
+.weather::after{
+  content: '';
+  position: fixed;
+  top: 0;
+  z-index: -1;
+  width: 100vw;
+  height: 100vh;
+  background:rgba(0,0,0,.4);
+}
+
+.center {
+  text-align: center;
+}
+
+.today {
+  width:40%;
+  height:120px;
+  margin-left:5%;
+  margin-top:20px;
+  float: left;
+}
+
+.today.right {
+  width: 50%;
+  margin-left: 0;
+}
+
+.today p,
+.forecast p{
+  margin-top: 5px;
+}
+
+.nowspan {
+  font-size: 40px;
+  float: right;
+  margin-right: 20px;
+  margin-top: 18px;
+}
+
+.city {
+  font-size: 20px;
+  text-align: center;
+}
+
+.loc { 
+  margin-left: 6px;
+}
+
+.big-img {
+  width: 80px;
+  height: 80px;
+  color: #fff;
+}
+
+.small-img {
+  width: 45px;
+  height: 45px;
+}
+
+.forecast {
+  margin-top: 160px;
+  padding: 0 40px;
+  font-size: 14px;
+}
+
+.forecast li{
+  display: inline-block;
+  width: 100px;
+  padding-top: 20px;
+  text-align: center;
+}
+
+.clearfix:before,
+.clearfix:after {
+  content: '';
+  display: table;
+}
+
+.clearfix:after {
+  clear: both;
+  overflow: hidden;
+}
+
+.tips{
+  font-size: 14px;
+  padding: 15px 20px;
+}
+
+.tips span{
+  color: #ff9900;
+}
+
+.scroll-view {
+  height: 200px;
+  white-space: nowrap;
+  overflow-x: scroll;
+}
 </style>
