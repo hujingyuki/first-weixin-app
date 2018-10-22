@@ -1,9 +1,10 @@
 {
   "pages": [
-    "pages/login/main",
     "pages/index/main",
+    "pages/login/main",
     "pages/newsDetail/main",
-    "pages/location/main"
+    "pages/location/main",
+    "pages/weather/main"
   ],
   "window": {
     "backgroundTextStyle": "dark",

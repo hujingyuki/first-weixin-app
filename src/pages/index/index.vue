@@ -2,9 +2,6 @@
   <div>
     <!-- 新闻部分 -->
     <div v-if="currentMeun =='news'">
-      <!-- <i-tabs :current="currentBar" scroll>
-        <i-tab  v-for="(item, index) in newsTypes" :title="item.desc" :key="index" @click="changeType(index)"></i-tab>
-      </i-tabs> -->
       <scroll-view :scroll-x="true" :scroll-left="scrollLeft" class="tab-scroll">
         <span v-for="(item, index) in newsTypes" :key="index" @click="changeType(index)" :class="['tab-item',currentBar == index ? 'active' :'']">{{item.desc}}</span>
       </scroll-view>
@@ -52,11 +49,43 @@
       </ul>
       <p class="tips"><span>温馨提示：</span>{{tips}}</p>
     </div>
-
+    <!-- 热门段子 -->
+    <div v-if="currentMeun =='satin'" class="satin">
+      <scroll-view :scroll-x="true" :scroll-left="scrollLeft" class="tab-scroll">
+        <span v-for="(item, index) in satinTypes" :key="index" @click="currentSatin=index" :class="['tab-item',currentSatin == index ? 'active' :'']">{{item}}</span>
+      </scroll-view>
+      <swiper :current="currentSatin" @change="handleSwiper" class="swiper">
+        <swiper-item v-for="(swiperitem, swiperIndex) in satinTypes" :key="swiperIndex">
+          <scroll-view :scroll-y="true" class="satin-scroll">
+            <div class="satin-box" v-for="(satin,index) in satinData" :key="index">
+              <div class="pulisher">
+                <img class="pulisher-img" :src="satin.header">
+                <span class="pulisher-name">{{ satin.username }}</span>
+              </div>
+              <div class="content">
+                <p class="content-text">{{satin.text}}</p>
+                <view>
+                  <img v-if="satin.type=='image'" :src="satin.image">
+                  <video v-if="satin.type == 'video'" :src="satin.video"></video>
+                </view>
+              </div>
+              <div class="comments">
+                <p class="comments-like"><i-icon type="collection_fill" />{{satin.up}}<i-icon type="collection" />{{satin.down}}</p>
+                <p class="commenter">
+                  <img class="comments-img" :src="satin.top_commentsHeader">
+                  <span class="comments-name">{{ satin.top_commentsName }}</span>
+                </p>
+                <p class="first-comments"><i-icon type="interactive_fill" /> {{satin.top_commentsContent}}</p>
+              </div>
+            </div>
+          </scroll-view>
+        </swiper-item>
+      </swiper>
+    </div>
     <i-tab-bar :current="currentMeun" color="#2b85e4" :fixed="true" @change="handleChange">
       <i-tab-bar-item key="news" icon="barrage" current-icon="barrage_fill" title="新闻"></i-tab-bar-item>
       <i-tab-bar-item key="weather" icon="dynamic" current-icon="dynamic_fill" title="天气"></i-tab-bar-item>
-      <i-tab-bar-item key="remind" icon="remind" current-icon="remind_fill" title="通知"></i-tab-bar-item>
+      <i-tab-bar-item key="satin" icon="emoji" current-icon="emoji_fill" title="段子"></i-tab-bar-item>
       <i-tab-bar-item key="mine" icon="mine" current-icon="mine_fill" title="我的"></i-tab-bar-item>
     </i-tab-bar>
   </div>
@@ -76,7 +105,10 @@ export default {
       scrollLeft: 0,
       weatherArray: [],
       tips: '',
-      nowTemp: ''
+      nowTemp: '',
+      satinData:[],
+      currentSatin: 0,
+      satinTypes:['推荐','文字','照片','视频','GIF']
     }
   },
 
@@ -99,7 +131,9 @@ export default {
           wx.setNavigationBarTitle({title:'天气预报'});
           this.initWeather();
           break;
-        case "remind":
+        case "satin":
+          wx.setNavigationBarTitle({title:'热门段子'});
+          this.initSatin();
           break;
         case "mine":
           break;
@@ -131,10 +165,15 @@ export default {
     },
     // 新闻页面左右滑动
     handleSwiper(ev){
-      this.currentBar = ev.mp.detail.current;
-      //超过6个tab后滚动tab标签
-      if(this.currentBar > 6) {
-        this.scrollLeft = 50;
+      if(this.currentMeun=='news'){
+        this.currentBar = ev.mp.detail.current;
+        //超过6个tab后滚动tab标签
+        if(this.currentBar > 6) {
+          this.scrollLeft = 50;
+        }
+      } else if(this.currentMeun=='satin') {
+        this.currentSatin = ev.mp.detail.current;
+        this.initSatin();
       }
     },
     //查看新闻详情 未发布出去的不支持
@@ -148,8 +187,8 @@ export default {
       wx.navigateTo({url});
     },
     // 获取天气数据
-    initWeather() {
-      this.$net.get('weatherApi',{city:this.cityName}).then(res => {
+    async initWeather() {
+      await this.$net.get('weatherApi',{city:this.cityName}).then(res => {
         wx.hideNavigationBarLoading();
         if (res.code == 200) {
           this.weatherArray = [];//清空数据
@@ -212,6 +251,14 @@ export default {
         data.weekday = dateA[1];
       }
     },
+    async initSatin() {
+      await this.$net.get('satinGodApi',{type: this.currentSatin + 1,page:1}).then(res => {
+        if (res.code == 200) {
+          this.satinData = res.data;
+          console.log(res.data);
+        }
+      })
+    }
   },
   mounted () {
     this.getNews();
@@ -396,5 +443,80 @@ export default {
   height: 200px;
   white-space: nowrap;
   overflow-x: scroll;
+}
+
+.satin-scroll {
+  height: 700px;
+}
+
+.satin-box{
+  margin:0 16px;
+  font-size:14px;
+  overflow:hidden;
+  position:relative;
+  background:#fff;
+  border:1rpx solid #dddee1;
+  border-radius:5px;
+  margin-bottom: 10px;
+}
+
+.pulisher {
+  height: 32px;
+  line-height: 32px;
+  margin-top: 6px;
+}
+
+.pulisher-img {
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  margin:0 10px;
+}
+
+.pulisher-name,
+.comments-name {
+  width: 250px;
+  overflow: hidden;
+  text-overflow:ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.content {
+  margin-bottom: 10px;
+}
+
+.content image,
+.content video {
+  width: 280px;
+  height: 200px;
+  margin: 10px 15px;
+}
+
+.content-text,
+.first-comments {
+  margin:0 16px;
+  text-indent: 2;
+  padding-top: 10px;
+}
+
+.comments {
+  margin-bottom: 15px;
+}
+
+.commenter {
+  height: 24px;
+  line-height: 24px;
+}
+.comments-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin: 0 10px;
+}
+
+.comments-like {
+  text-align: right;
+  margin-right:16px;
 }
 </style>
