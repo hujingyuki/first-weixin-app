@@ -56,26 +56,30 @@
       </scroll-view>
       <swiper :current="currentSatin" @change="handleSwiper" class="swiper">
         <swiper-item v-for="(swiperitem, swiperIndex) in satinTypes" :key="swiperIndex">
-          <scroll-view :scroll-y="true" class="satin-scroll">
+          <scroll-view :scroll-y="true" class="satin-scroll" @scrolltolower="initSatin(1)">
             <div class="satin-box" v-for="(satin,index) in satinData" :key="index">
-              <div class="pulisher">
-                <img class="pulisher-img" :src="satin.header">
+              <div class="pulisher align">
+                <image class="pulisher-img" :src="satin.header" :lazy-load="true"/>
                 <span class="pulisher-name">{{ satin.username }}</span>
               </div>
               <div class="content">
                 <p class="content-text">{{satin.text}}</p>
                 <view>
-                  <img v-if="satin.type=='image'" :src="satin.image">
-                  <video v-if="satin.type == 'video'" :src="satin.video"></video>
+                  <image v-if=" satin.type == 'image' || satin.type == 'video' " :src="satin.thumbnail" :lazy-load="true" mode="aspectFill" @click="preview(satin.thumbnail)"/>
+                  <!-- <image v-if="satin.type=='video'" :src="satin.thumbnail" :lazy-load="true" mode="aspectFill" @click="playVideo(satin.uid)"/>
+                  <video v-if="showVideo" :src="satin.video" :id="satin.uid"></video> -->
                 </view>
               </div>
               <div class="comments">
                 <p class="comments-like"><i-icon type="collection_fill" />{{satin.up}}<i-icon type="collection" />{{satin.down}}</p>
-                <p class="commenter">
-                  <img class="comments-img" :src="satin.top_commentsHeader">
+                <p class="commenter align">
+                  <image class="comments-img" :src="satin.top_commentsHeader" :lazy-load="true"/>
                   <span class="comments-name">{{ satin.top_commentsName }}</span>
                 </p>
-                <p class="first-comments"><i-icon type="interactive_fill" /> {{satin.top_commentsContent}}</p>
+                <p class="first-comments">
+                  <i-icon type="interactive" />
+                  {{satin.top_commentsContent}} 
+                </p>
               </div>
             </div>
           </scroll-view>
@@ -108,7 +112,9 @@ export default {
       nowTemp: '',
       satinData:[],
       currentSatin: 0,
-      satinTypes:['推荐','文字','照片','视频','GIF']
+      satinTypes:['推荐','文字','照片','GIF','视频'],
+      showVideo: false,
+      pageIndex: 1
     }
   },
 
@@ -172,6 +178,7 @@ export default {
           this.scrollLeft = 50;
         }
       } else if(this.currentMeun=='satin') {
+        this.satinData = [];
         this.currentSatin = ev.mp.detail.current;
         this.initSatin();
       }
@@ -251,13 +258,38 @@ export default {
         data.weekday = dateA[1];
       }
     },
-    async initSatin() {
-      await this.$net.get('satinGodApi',{type: this.currentSatin + 1,page:1}).then(res => {
+    // 加载段子数据
+    async initSatin(isRefresh) {
+      wx.showLoading();
+      if(isRefresh){
+        this.pageIndex += 1;
+      } else {
+        this.pageIndex = 1;
+      }
+      await this.$net.get('satinGodApi',{type: this.currentSatin + 1,page:this.pageIndex}).then(res => {
         if (res.code == 200) {
-          this.satinData = res.data;
-          console.log(res.data);
+          if(isRefresh){
+            this.satinData= this.satinData.concat(res.data);
+          } else {
+            this.satinData = res.data;
+          }
+          // console.log(this.satinData);
         }
+        wx.hideLoading();
       })
+    },
+    // 预览图片
+    preview(src) {
+      wx.previewImage({
+		  	current: src, // 当前显示图片的http链接
+		  	urls: [src] // 需要预览的图片http链接列表
+		  })
+    },
+    // 播放视频
+    playVideo(uid) {
+      this.showVideo = true;
+      let videoContext = wx.createVideoContext(uid);
+      videoContext.play();
     }
   },
   mounted () {
@@ -292,8 +324,9 @@ export default {
   margin: 5rpx;
 }
 .swiper,
-.scroll {
-  height: 516px;
+.scroll,
+.satin-scroll {
+  height: 500px;
 }
 
 .swiper {
@@ -445,10 +478,6 @@ export default {
   overflow-x: scroll;
 }
 
-.satin-scroll {
-  height: 700px;
-}
-
 .satin-box{
   margin:0 16px;
   font-size:14px;
@@ -470,7 +499,7 @@ export default {
   width:30px;
   height:30px;
   border-radius:50%;
-  margin:0 10px;
+  margin-right:10px;
 }
 
 .pulisher-name,
@@ -495,7 +524,7 @@ export default {
 
 .content-text,
 .first-comments {
-  margin:0 16px;
+  margin:0 20px;
   text-indent: 2;
   padding-top: 10px;
 }
@@ -512,11 +541,22 @@ export default {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  margin: 0 10px;
+  margin-right: 10px;
 }
 
 .comments-like {
   text-align: right;
   margin-right:16px;
+}
+
+.align {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.more {
+  float: right;
+  margin-right: 16px;
 }
 </style>
