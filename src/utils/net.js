@@ -27,7 +27,7 @@ const net = {
         fail: function (error) {
           // fail
           wx.hideLoading()
-          reject(error)// 请求失败
+          reject(error) // 请求失败
         },
         complete: function () {
           wx.hideLoading()
@@ -67,4 +67,4 @@ const net = {
   }
 }
 
-export default net// 暴露出来供其他文件引用
+export default net // 暴露出来供其他文件引用
