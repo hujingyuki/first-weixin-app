@@ -6,12 +6,12 @@
 export default {
   data() {
     return {
-      link: ''//链接地址
+      link: '' //链接地址
     }
   },
   methods: {},
-  onLoad: function (options) {
-    this.link = options.link;
+  onLoad: function(options) {
+    this.link = options.link
   }
 }
 </script>

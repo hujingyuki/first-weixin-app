@@ -205,7 +205,8 @@ export function computedImgCode (type) {
       case '冷':
         reCode = 901
         break
-      default:break
+      default:
+        break
     }
   }
   return reCode
