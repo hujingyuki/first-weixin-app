@@ -13,6 +13,7 @@
 
     <form class="form-container">
       <i-input type="text"
+<<<<<<< HEAD
                :value="username"
                title="账号"
                placeholder="请输入用户名"
@@ -22,6 +23,17 @@
                title="密码"
                placeholder="请输入密码"
                @change="input('password', $event)"></i-input>
+=======
+               v-model="username"
+               title="账号"
+               placeholder="请输入用户名"
+               @input='input("username",$event)'></i-input>
+      <i-input type="password"
+               v-model="password"
+               title="密码"
+               placeholder="请输入密码"
+               @input='input("password",$event)'></i-input>
+>>>>>>> c2c0ba2923cee0257c1e899b9893fc3f93f2cd0e
       <i-button type="primary"
                 @click="login">登 录</i-button>
     </form>
