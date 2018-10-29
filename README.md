@@ -1,21 +1,22 @@
-# firstapp
+# 初尝 mpvue
 
-> A Mpvue project
+> 使用 iView Weapp 和公共接口实现基本功能，包括用户登录，新闻列表，天气预报，热门段子等功能尝试
 
-## Build Setup
+## 新闻列表
 
-``` bash
-# install dependencies
-npm install
+> scroll-view 实现头部滚动
+> swiper + scroll-view 实现横向竖向滚动
 
-# serve with hot reload at localhost:8080
-npm run dev
+## 天气预报
 
-# build for production with minification
-npm run build
+> swiper 实现天气预报滚动
+> wx.getLocation 调用 api 定位（需用户授权）
 
-# build for production and view the bundle analyzer report
-npm run build --report
-```
+## 热门段子
 
-For detailed explanation on how things work, checkout the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
+> scroll-view 实现头部滚动
+> swiper + scroll-view 实现横向竖向滚动
+
+## 更多功能
+
+> 微信原生 api 如扫码，选择位置等功能
